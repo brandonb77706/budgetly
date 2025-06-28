@@ -25,20 +25,45 @@ const Index = () => {
 
   const signIn = async (): Promise<string | null> => {
     try {
+      // Sign in the user with Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
+      const user = userCredential.user; // Authenticated user object
+      const userId = user.uid; // Firebase UID
 
-      if (userCredential) {
-        router.replace("/(tabs)");
-      }
-      return null;
+      console.log("User credentials are:", user);
+      console.log("User signed in with UID:", userId);
+
+      // Navigate to the main app if sign-in is successful
+      if (user) router.replace("/(tabs)");
+      // Send the userId to the backend
+      const response = await fetch(
+        "http://localhost:5001/api/create_link_token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId, username }), // Send userId to the backend
+        }
+      );
+
+      console.log("Response Status:", response.status);
+      console.log("Response Headers:", response.headers);
+      const text = await response.text(); // Read the raw response body as text
+      console.log("Response Body:", text);
+
+      const data = JSON.parse(text); // Parse the response manually
+      console.log("Parsed Data:", data);
+
+      return userId; // Return the userId
     } catch (error: any) {
       console.log(error);
       alert("Sign in failed: " + error.message);
-      return null;
+      return null; // Return null if sign-in fails
     }
   };
 
@@ -65,9 +90,10 @@ const Index = () => {
 
       console.log("User signed up and profile saved to Firestore!", userId);
 
+      if (user) router.replace("/(tabs)");
       // Send the userId to the backend
       const response = await fetch(
-        "http://localhost:5000/api/create_link_token",
+        "http://localhost:5001/api/create_link_token",
         {
           method: "POST",
           headers: {
@@ -76,8 +102,7 @@ const Index = () => {
           body: JSON.stringify({ userId }), // Send userId to the backend
         }
       );
-
-      if (user) router.replace("/(tabs)");
+      const data = await response.json();
 
       return userId; // Return the userId
     } catch (error: any) {

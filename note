@@ -1,4 +1,8 @@
 initialize link button look at quickstart
 
-look at plaid github frontend clone
+look at plaid github frontend clone'
+
+figure out how to get client id to work
 makign api request
+
+challenges: can't get backend to authroize frontend request to creakte link token. (CORS problem)
