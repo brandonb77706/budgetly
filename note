@@ -6,3 +6,5 @@ figure out how to get client id to work
 makign api request
 
 challenges: can't get backend to authroize frontend request to creakte link token. (CORS problem)
+
+used plaid set and config for web needed to use ios/andriod

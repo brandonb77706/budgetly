@@ -95,7 +95,7 @@ app.post(
 
       res.json({ public_token_exchange: "complete" });
     } catch (error) {
-      // handle error
+      console.error("Error occured gettin token", error);
     }
   }
 );

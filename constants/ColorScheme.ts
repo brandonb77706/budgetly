@@ -11,4 +11,5 @@ export default {
   inputBackground: "#ffffff",
   buttonText: "#ffffff",
   buttonTextSecondary: "#ffffff",
+  disabledButton: "grey",
 };

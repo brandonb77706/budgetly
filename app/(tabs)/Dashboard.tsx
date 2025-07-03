@@ -4,10 +4,10 @@ import EditScreenInfo from "@/components/EditScreenInfo";
 import { Text, View } from "@/components/Themed";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function TabTwoScreen() {
+export default function Dashboard() {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>DataBase</Text>
+      <Text style={styles.title}>Dashboard</Text>
     </SafeAreaView>
   );
 }

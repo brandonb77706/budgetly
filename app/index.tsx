@@ -37,27 +37,8 @@ const Index = () => {
       console.log("User credentials are:", user);
       console.log("User signed in with UID:", userId);
 
-      // Navigate to the main app if sign-in is successful
-      if (user) router.replace("/(tabs)");
-      // Send the userId to the backend
-      const response = await fetch(
-        "http://localhost:5001/api/create_link_token",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ userId, username }), // Send userId to the backend
-        }
-      );
-
-      console.log("Response Status:", response.status);
-      console.log("Response Headers:", response.headers);
-      const text = await response.text(); // Read the raw response body as text
-      console.log("Response Body:", text);
-
-      const data = JSON.parse(text); // Parse the response manually
-      console.log("Parsed Data:", data);
+      // Navigate to the Linking screen and pass userId as a prop
+      if (user) router.push({ pathname: "/linking", params: { userId } });
 
       return userId; // Return the userId
     } catch (error: any) {
@@ -90,19 +71,8 @@ const Index = () => {
 
       console.log("User signed up and profile saved to Firestore!", userId);
 
-      if (user) router.replace("/(tabs)");
-      // Send the userId to the backend
-      const response = await fetch(
-        "http://localhost:5001/api/create_link_token",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ userId }), // Send userId to the backend
-        }
-      );
-      const data = await response.json();
+      // Navigate to the Linking screen and pass userId as a prop
+      if (user) router.push({ pathname: "/linking", params: { userId } });
 
       return userId; // Return the userId
     } catch (error: any) {
