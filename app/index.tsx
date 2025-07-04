@@ -7,6 +7,8 @@ import {
 } from "react-native";
 import { StyleSheet } from "react-native";
 import React, { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { auth } from "../FirebaseConfig";
 import {
   createUserWithEmailAndPassword,
@@ -33,6 +35,17 @@ const Index = () => {
       );
       const user = userCredential.user; // Authenticated user object
       const userId = user.uid; // Firebase UID
+
+      // Store auth data in AsyncStorage
+      await AsyncStorage.setItem(
+        "user_auth",
+        JSON.stringify({
+          userId: user.uid,
+          email: user.email,
+          // Any other relevant auth data
+        })
+      );
+      router.replace("/(tabs)");
 
       console.log("User credentials are:", user);
       console.log("User signed in with UID:", userId);

@@ -8,3 +8,25 @@ makign api request
 challenges: can't get backend to authroize frontend request to creakte link token. (CORS problem)
 
 used plaid set and config for web needed to use ios/andriod
+
+Redirecting from plaid to mobile is different than just doing localhost/callback
+Mobile vs Web App Redirects: Key Differences
+URI Schemes vs URLs: Web apps use standard HTTP/HTTPS URLs while mobile apps require custom URI schemes (myapp://callback) or universal links that the OS must intercept.
+
+Implementation Requirements: Web apps use simple HTTP 302 redirects or JavaScript navigation, while mobile apps need manifest configuration and explicit URI scheme registration with the operating system.
+
+Authentication Flow: Web apps maintain session state automatically within the browser; mobile apps must explicitly handle token passage through deep link parameters.
+
+Context Switching: Web redirects happen seamlessly in the browser; mobile redirects involve switching between the browser and the native application.
+
+Bridge Architecture: Mobile often requires an intermediary web server to receive callbacks and transform them into app-specific deep links.
+
+Security Model: Web apps rely on HTTPS and same-origin policies; mobile apps face challenges like URI scheme hijacking and require Universal Links (iOS) or App Links (Android) for better security.
+
+Configuration Overhead: Mobile deep linking requires additional setup in app manifests, entitlements files, and associated domains configuration.
+
+Third-Party Integration: Services like Plaid or OAuth providers need special handling for mobile, often requiring custom redirect endpoints that bridge web-to-app communication.
+
+Error Handling: Mobile deep links have more potential failure points requiring robust fallback mechanisms and error handling.
+
+Platform Differences: iOS and Android handle deep links differently, requiring platform-specific implementation considerations.

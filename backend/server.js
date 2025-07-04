@@ -9,9 +9,9 @@ app.use(bodyParser.json());
 const cors = require("cors");
 app.use(
   cors({
-    origin: "http://localhost:8081", // Replace with your frontend's origin
-    methods: ["GET", "POST"], // Allow specific HTTP methods
-    allowedHeaders: ["Content-Type"], // Allow specific headers
+    origin: ["http://localhost:8081", "exp://localhost:8081"],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
   })
 );
 //plaid cofig such as using client id and sercet id
@@ -32,15 +32,38 @@ const configuration = new Configuration({
 
 const client = new PlaidApi(configuration);
 // Root route
-app.get("/", (req, res) => {
-  res.send("Welcome to the Plaid API Server!");
+app.get("/callback", (req, res) => {
+  console.log("Received callback from Plaid with query params:", req.query);
+
+  // Extract any query parameters
+  const queryParams = new URLSearchParams(req.query).toString();
+
+  // Redirect to your mobile app using your app's custom URL scheme
+  const redirectUrl = `budgetly://plaid-callback?${queryParams}`;
+
+  // Create a simple HTML page that will redirect to your app
+  res.send(`
+    <html>
+      <head>
+        <title>Redirecting...</title>
+        <meta http-equiv="refresh" content="0;url=${redirectUrl}">
+      </head>
+      <body>
+        <p>Redirecting to the Budgetly app...</p>
+        <p>If you're not automatically redirected, <a href="${redirectUrl}">click here</a>.</p>
+        <script>
+          window.location.href = "${redirectUrl}";
+        </script>
+      </body>
+    </html>
+  `);
 });
 
 app.post("/api/create_link_token", async function (request, response) {
   // Get the client_user_id by searching for the current user
   console.log("creating link token");
   const { userId, username } = request.body;
-  const clientName = username || "defaul client Name";
+  const clientName = username || "FinWise";
 
   if (!userId) {
     return response.status(400).json({ error: "userId is required" });
