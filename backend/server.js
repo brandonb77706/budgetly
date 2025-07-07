@@ -107,16 +107,16 @@ app.post(
   async function (request, response, next) {
     const publicToken = request.body.public_token;
     try {
-      const response = await client.itemPublicTokenExchange({
+      const plaidResponse = await client.itemPublicTokenExchange({
         public_token: publicToken,
       });
 
       // These values should be saved to a persistent database and
       // associated with the currently signed-in user
-      accessToken = response.data.access_token;
-      const itemID = response.data.item_id;
+      accessToken = plaidResponse.data.access_token;
+      const itemID = plaidResponse.data.item_id;
 
-      res.json({ public_token_exchange: "complete" });
+      response.json({ public_token_exchange: "complete" });
     } catch (error) {
       console.error("Error occured gettin token", error);
     }
@@ -127,15 +127,29 @@ app.post(
 const prettyPrintResponse = (response) => {
   console.log(JSON.stringify(response, null, 2));
 };
-app.get("/api/accounts", async function (request, response, next) {
+app.get("/api/accounts", async function (request, response) {
   try {
+    if (!accessToken) {
+      return response.status(400).json({
+        error: "No access token available. Have you linked your account?",
+      });
+    }
+
     const accountsResponse = await client.accountsGet({
       access_token: accessToken,
     });
-    prettyPrintResponse(accountsResponse);
-    console.log(response);
+
+    // Just log the data directly instead of using prettyPrintResponse
+    console.log(
+      "Account data:",
+      JSON.stringify(accountsResponse.data, null, 2)
+    );
+
+    // Send the data back to the client
+    response.json(accountsResponse.data);
   } catch (error) {
-    console.error("Error fetching a accounts: ", error.message);
+    console.error("Error fetching accounts:", error.message);
+    response.status(500).json({ error: error.message });
   }
 });
 

@@ -45,7 +45,8 @@ const Index = () => {
           // Any other relevant auth data
         })
       );
-      router.replace("/(tabs)");
+
+      await AsyncStorage.setItem("userId", user.uid);
 
       console.log("User credentials are:", user);
       console.log("User signed in with UID:", userId);

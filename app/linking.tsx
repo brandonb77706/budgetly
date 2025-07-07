@@ -5,17 +5,17 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Button, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { openLink, LinkSuccess, LinkExit } from "react-native-plaid-link-sdk";
+import { openLink } from "react-native-plaid-link-sdk";
 import { TouchableOpacity } from "react-native";
 
 import { StyleSheet } from "react-native";
 import colors from "@/constants/ColorScheme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Linking = () => {
   const [linkToken, setLinkToken] = useState(null);
   const params = useLocalSearchParams();
   const userId = params.userId as string;
-  console.log("recevied userID:", userId);
 
   const generateToken = async () => {
     const response = await fetch(
@@ -90,10 +90,15 @@ const Link: React.FC<LinkProps> = (props: LinkProps) => {
         const accountData = await accountResponse.json();
         console.log("account data successful:", accountData);
 
+        await AsyncStorage.setItem("accData", JSON.stringify(accountData));
+
         //send user to dash board
         router.push({
-          pathname: "/Dashboard",
-          params: { userId: props.userId, accountData: accountData },
+          pathname: "/(tabs)/Dashboard",
+          params: {
+            userId: props.userId,
+            accountData: JSON.stringify(accountData),
+          },
         });
       } catch (err) {
         console.error("Err in link flow", err);

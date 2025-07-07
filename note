@@ -30,3 +30,5 @@ Third-Party Integration: Services like Plaid or OAuth providers need special han
 Error Handling: Mobile deep links have more potential failure points requiring robust fallback mechanisms and error handling.
 
 Platform Differences: iOS and Android handle deep links differently, requiring platform-specific implementation considerations.
+
+figure out how to send account data over
