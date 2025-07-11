@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { StyleSheet } from "react-native";
 import colors from "../constants/ColorScheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Keychain from "react-native-keychain";
 
 export default function PlaidCallback() {
   const params = useLocalSearchParams();
@@ -44,6 +45,22 @@ export default function PlaidCallback() {
             console.log(
               "Successfully exchanged token, navigating to Dashboard"
             );
+
+            const data = await response.json();
+
+            if (data.access_token) {
+              await Keychain.setGenericPassword(
+                "plaid_access_token",
+                data.access_token,
+                {
+                  service: "plaid",
+                  accessControl:
+                    Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
+                }
+              );
+              console.log("Access token stored securely");
+            }
+
             router.replace("/(tabs)/Dashboard");
           } else {
             console.error("Failed to exchange token");

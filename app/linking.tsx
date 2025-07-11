@@ -7,8 +7,11 @@ import { Button, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { openLink } from "react-native-plaid-link-sdk";
 import { TouchableOpacity } from "react-native";
-
 import { StyleSheet } from "react-native";
+
+import { exchangePublicToken } from "@/utils/plaidToken";
+import { storePlaidAccessToken } from "@/utils/plaidToken";
+import * as Keychain from "react-native-keychain";
 import colors from "@/constants/ColorScheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -62,19 +65,16 @@ const Link: React.FC<LinkProps> = (props: LinkProps) => {
     async (public_token: any) => {
       //token exchange
       try {
-        const response = await fetch(
-          "http://localhost:5001/api/exchange_public_token",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ public_token, userId: props.userId }),
-          }
+        const accessToken = await exchangePublicToken(
+          public_token,
+          props.userId
         );
 
-        const tokenData = await response.json();
-        console.log("Token exchange worked: ", tokenData);
+        console.log("Token exchange worked: ", accessToken);
+        if (accessToken) {
+          storePlaidAccessToken(accessToken);
+          console.log("acces token stored in keychain");
+        }
 
         //fetching accounts after token exchange
         const accountResponse = await fetch(
@@ -84,21 +84,17 @@ const Link: React.FC<LinkProps> = (props: LinkProps) => {
             headers: {
               "Content-Type": "application/json",
               userId: props.userId,
+              access_token: accessToken,
             },
           }
         );
         const accountData = await accountResponse.json();
-        console.log("account data successful:", accountData);
 
         await AsyncStorage.setItem("accData", JSON.stringify(accountData));
 
         //send user to dash board
         router.push({
           pathname: "/(tabs)/Dashboard",
-          params: {
-            userId: props.userId,
-            accountData: JSON.stringify(accountData),
-          },
         });
       } catch (err) {
         console.error("Err in link flow", err);

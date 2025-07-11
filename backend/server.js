@@ -11,11 +11,14 @@ app.use(
   cors({
     origin: ["http://localhost:8081", "exp://localhost:8081"],
     methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "access_token"],
   })
 );
 //plaid cofig such as using client id and sercet id
 const { Configuration, PlaidApi, PlaidEnvironments } = require("plaid");
+const {
+  default: AsyncStorage,
+} = require("@react-native-async-storage/async-storage");
 console.log("Client ID:", process.env.BACKEND_CLIENT_ID);
 console.log("Secret ID:", process.env.BACKEND_SECRET_ID);
 
@@ -76,7 +79,7 @@ app.post("/api/create_link_token", async function (request, response) {
       client_user_id: clientUserId,
     },
     client_name: clientName,
-    products: ["auth"],
+    products: ["auth", "transactions"],
     language: "en",
     webhook: "http://localhost:5001/api/plaid-webhook",
     redirect_uri: "http://localhost:5001/callback",
@@ -99,8 +102,6 @@ app.post("/api/create_link_token", async function (request, response) {
   }
 });
 
-//declring access token so it can be used globally
-let accessToken = null;
 //public exchange token
 app.post(
   "/api/exchange_public_token",
@@ -111,12 +112,13 @@ app.post(
         public_token: publicToken,
       });
 
-      // These values should be saved to a persistent database and
-      // associated with the currently signed-in user
-      accessToken = plaidResponse.data.access_token;
-      const itemID = plaidResponse.data.item_id;
-
-      response.json({ public_token_exchange: "complete" });
+      // Sending to the client
+      response.json({
+        public_token_exchange: "complete",
+        access_token: plaidResponse.data.access_token,
+        item_id: plaidResponse.data.item_id,
+      });
+      console.log("Access token sent to client");
     } catch (error) {
       console.error("Error occured gettin token", error);
     }
@@ -129,6 +131,9 @@ const prettyPrintResponse = (response) => {
 };
 app.get("/api/accounts", async function (request, response) {
   try {
+    // Get the token from the request headers instead of the global variable
+    const accessToken = request.headers.access_token;
+
     if (!accessToken) {
       return response.status(400).json({
         error: "No access token available. Have you linked your account?",
@@ -149,6 +154,60 @@ app.get("/api/accounts", async function (request, response) {
     response.json(accountsResponse.data);
   } catch (error) {
     console.error("Error fetching accounts:", error.message);
+    response.status(500).json({ error: error.message });
+  }
+});
+
+//getting transactions
+app.get("/api/transactions", async function (request, response) {
+  try {
+    // Get the token from the request headers instead of the global variable
+    const accessToken = request.headers.access_token;
+
+    if (!accessToken) {
+      return response.status(400).json({
+        error: "No access token available. Have you linked your account?",
+      });
+    }
+    console.log("setting up timeline");
+    // Get transactions for the last 30 days
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const startDate = thirtyDaysAgo.toISOString().split("T")[0];
+    const endDate = now.toISOString().split("T")[0];
+
+    console.log(`Fetching transactions from ${startDate} to ${endDate}`);
+
+    try {
+      const transactionsResponse = await client.transactionsGet({
+        access_token: accessToken,
+        start_date: startDate,
+        end_date: endDate,
+      });
+
+      // Sends the transactions data back to the client
+      return response.json(transactionsResponse.data.transactions);
+    } catch (err) {
+      console.log(
+        "error occured fetching in server",
+        err.response?.data || err
+      );
+
+      // Forward the Plaid error to the client
+      if (err.response && err.response.data) {
+        return response
+          .status(err.response.status || 400)
+          .json(err.response.data);
+      }
+
+      // Generic error fallback
+      return response.status(500).json({
+        error: "Failed to fetch transactions",
+        details: err.message,
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching transactions:", error.message);
     response.status(500).json({ error: error.message });
   }
 });

@@ -6,6 +6,8 @@ import SignOut from "@/components/SignOut";
 import { useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Keychain from "react-native-keychain";
+import { ScrollView } from "react-native";
 
 //interfaces
 interface Account {
@@ -27,8 +29,10 @@ interface AccountData {
 }
 
 const Dashboard = () => {
-  const params = useLocalSearchParams();
   const [accountData, setAccountData] = useState<AccountData | null>(null);
+  const [transactions, setTransactions] = useState<any[]>();
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [retryAttempts, setRetryAttempts] = useState(0);
 
   const fetchAccountData = async () => {
     const user_Id = await AsyncStorage.getItem("userId");
@@ -52,30 +56,54 @@ const Dashboard = () => {
       }
     }
     console.log("account data in dashboard", accDataString);
-    try {
-      //fetching accounts after token exchange
-      const accountResponse = await fetch(
-        "http://localhost:5001/api/accounts",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            userId: user_Id,
-          },
-        }
-      );
+  };
 
-      // Check if response is ok
-      if (!accountResponse.ok) {
-        throw new Error(
-          `Server returned ${accountResponse.status}: ${accountResponse.statusText}`
-        );
+  const fetchTransactions = async () => {
+    try {
+      setTransactionsLoading(true);
+      console.log("trying to fetch");
+
+      //Get access token from Keychain
+      const credentials = await Keychain.getGenericPassword({
+        service: "plaid",
+      });
+
+      if (!credentials) {
+        console.log("no access token found");
+
+        if (retryAttempts < 5) {
+          setTimeout(() => {
+            setRetryAttempts((prev) => prev + 1);
+          }, 2000); // Retry after 2 seconds
+        }
+        return false;
       }
-      const data = await accountResponse.json();
-      setAccountData(data);
-      console.log("got accountdata");
+      console.log("accessToken found", credentials.password);
+
+      // Set a timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch("http://localhost:5001/api/transactions", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          access_token: credentials.password,
+        },
+      });
+      console.log("fetched transactions");
+      if (!response.ok) {
+        throw new Error("failed to get tranactions");
+      }
+      console.log("got response");
+      const data = await response.json();
+
+      console.log("got data");
+      setTransactions(data);
+      setTransactionsLoading(false);
     } catch (error) {
-      console.log("error fetch accountdata", error);
+      console.log("error getting recent transactions", error);
+      setTransactionsLoading(false);
     }
   };
 
@@ -86,8 +114,14 @@ const Dashboard = () => {
   }, [accountData]);
 
   //calling fetchdata
+  // Add this to your component
   useEffect(() => {
-    fetchAccountData();
+    const loadData = async () => {
+      await fetchAccountData();
+      await fetchTransactions();
+    };
+
+    loadData();
   }, []);
 
   return (
@@ -121,15 +155,40 @@ const Dashboard = () => {
         )}
       </View>
 
-      <View style={styles.recentSpendingContainer}>
+      <ScrollView style={styles.recentSpendingContainer}>
         <Text style={styles.sectionTitle}>Recent Spending</Text>
-        <View style={styles.emptyStateContainer}>
-          <Text style={styles.emptyStateText}>
-            Your recent transactions will appear here once your accounts are
-            synced.
-          </Text>
-        </View>
-      </View>
+        {transactions && transactions.length > 0 ? (
+          transactions.slice(0, 5).map((transaction: any, index: any) => (
+            <View key={index} style={styles.transactionItem}>
+              <View style={styles.transactionLeft}>
+                <Text style={styles.transactionName}>{transaction.name}</Text>
+                <Text style={styles.transactionDate}>
+                  {new Date(transaction.date).toLocaleDateString()}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.transactionAmount,
+                  { color: transaction.amount < 0 ? "#2e7d32" : "#c62828" },
+                ]}
+              >
+                ${Math.abs(transaction.amount).toFixed(2)}
+              </Text>
+            </View>
+          ))
+        ) : transactionsLoading ? (
+          <View style={styles.loadingContainer}>
+            <Text>Loading transactions...</Text>
+          </View>
+        ) : (
+          <View style={styles.emptyStateContainer}>
+            <Text style={styles.emptyStateText}>
+              Your recent transactions will appear here once your accounts are
+              synced.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -225,5 +284,36 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#c62828",
     marginBottom: 8,
+  },
+  transactionItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: "white",
+    borderRadius: 8,
+    marginVertical: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  transactionLeft: {
+    flex: 1,
+  },
+  transactionName: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#424242",
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: "#757575",
+    marginTop: 2,
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

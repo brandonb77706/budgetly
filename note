@@ -8,6 +8,9 @@ makign api request
 challenges: can't get backend to authroize frontend request to creakte link token. (CORS problem)
 
 used plaid set and config for web needed to use ios/andriod
+Changed how i stored my accesstoekn from async to keychain storage
+
+---
 
 Redirecting from plaid to mobile is different than just doing localhost/callback
 Mobile vs Web App Redirects: Key Differences
@@ -31,4 +34,5 @@ Error Handling: Mobile deep links have more potential failure points requiring r
 
 Platform Differences: iOS and Android handle deep links differently, requiring platform-specific implementation considerations.
 
-figure out how to send account data over
+change how im sending data over make api call in dashboard instead of using async
+use keychain to store access token
