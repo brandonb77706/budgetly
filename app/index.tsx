@@ -7,6 +7,8 @@ import {
 } from "react-native";
 import { StyleSheet } from "react-native";
 import React, { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { auth } from "../FirebaseConfig";
 import {
   createUserWithEmailAndPassword,
@@ -25,20 +27,38 @@ const Index = () => {
 
   const signIn = async (): Promise<string | null> => {
     try {
+      // Sign in the user with Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
+      const user = userCredential.user; // Authenticated user object
+      const userId = user.uid; // Firebase UID
 
-      if (userCredential) {
-        router.replace("/(tabs)");
-      }
-      return null;
+      // Store auth data in AsyncStorage
+      await AsyncStorage.setItem(
+        "user_auth",
+        JSON.stringify({
+          userId: user.uid,
+          email: user.email,
+          // Any other relevant auth data
+        })
+      );
+
+      await AsyncStorage.setItem("userId", user.uid);
+
+      console.log("User credentials are:", user);
+      console.log("User signed in with UID:", userId);
+
+      // Navigate to the Linking screen and pass userId as a prop
+      if (user) router.push({ pathname: "/linking", params: { userId } });
+
+      return userId; // Return the userId
     } catch (error: any) {
       console.log(error);
       alert("Sign in failed: " + error.message);
-      return null;
+      return null; // Return null if sign-in fails
     }
   };
 
@@ -65,19 +85,8 @@ const Index = () => {
 
       console.log("User signed up and profile saved to Firestore!", userId);
 
-      // Send the userId to the backend
-      const response = await fetch(
-        "http://localhost:5000/api/create_link_token",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ userId }), // Send userId to the backend
-        }
-      );
-
-      if (user) router.replace("/(tabs)");
+      // Navigate to the Linking screen and pass userId as a prop
+      if (user) router.push({ pathname: "/linking", params: { userId } });
 
       return userId; // Return the userId
     } catch (error: any) {
